@@ -129,7 +129,7 @@ lazy val core = myCrossProject("core")
       Dependencies.commonsIo,
       Dependencies.coursierCore,
       Dependencies.coursierSbtMaven,
-      "dev.rolang" %% "gar-coursier" % "0.1.0",
+      "dev.rolang" %% "gar-coursier" % "0.1.1",
       Dependencies.cron4sCore,
       Dependencies.decline,
       Dependencies.fs2Core,
