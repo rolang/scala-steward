@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Scala Steward contributors
+ * Copyright 2018-2025 Scala Steward contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 
 package org.scalasteward.core.update
 
-import cats.syntax.all._
 import cats.Monad
-import org.scalasteward.core.data._
+import cats.syntax.all.*
+import org.scalasteward.core.data.*
 import org.scalasteward.core.repoconfig.RepoConfig
-import org.scalasteward.core.update.FilterAlg._
+import org.scalasteward.core.update.FilterAlg.*
 import org.scalasteward.core.util.Nel
 import org.typelevel.log4cats.Logger
 
@@ -37,7 +37,7 @@ final class FilterAlg[F[_]](implicit
   private def logIfRejected(result: FilterResult): F[Option[Update.ForArtifactId]] =
     result match {
       case Right(update) => F.pure(update.some)
-      case Left(reason) =>
+      case Left(reason)  =>
         logger.info(s"Ignore ${reason.update.show} (reason: ${reason.show})").as(None)
     }
 }
@@ -54,6 +54,7 @@ object FilterAlg {
         case NotAllowedByConfig(_)      => "not allowed by config"
         case NoSuitableNextVersion(_)   => "no suitable next version"
         case VersionOrderingConflict(_) => "version ordering conflict"
+        case IgnoreScalaNext(_)         => "not upgrading from Scala LTS to Next version"
       }
   }
 
@@ -62,9 +63,34 @@ object FilterAlg {
   final case class NotAllowedByConfig(update: Update.ForArtifactId) extends RejectionReason
   final case class NoSuitableNextVersion(update: Update.ForArtifactId) extends RejectionReason
   final case class VersionOrderingConflict(update: Update.ForArtifactId) extends RejectionReason
+  final case class IgnoreScalaNext(update: Update.ForArtifactId) extends RejectionReason
 
   def localFilter(update: Update.ForArtifactId, repoConfig: RepoConfig): FilterResult =
-    repoConfig.updates.keep(update).flatMap(globalFilter(_, repoConfig))
+    repoConfig.updatesOrDefault
+      .keep(update)
+      .flatMap(scalaLTSFilter)
+      .flatMap(globalFilter(_, repoConfig))
+
+  def scalaLTSFilter(update: Update.ForArtifactId): FilterResult =
+    if (!isScala3Lang(update))
+      Right(update)
+    else {
+      if (update.currentVersion >= scalaNextMinVersion) {
+        // already on Scala Next
+        Right(update)
+      } else {
+        val filteredVersions = update.newerVersions.filterNot(_ >= scalaNextMinVersion)
+        if (filteredVersions.nonEmpty)
+          Right(update.copy(newerVersions = Nel.fromListUnsafe(filteredVersions)))
+        else
+          Left(IgnoreScalaNext(update))
+      }
+    }
+
+  def isScala3Lang(update: Update.ForArtifactId): Boolean =
+    scala3LangModules.exists { case (g, a) =>
+      update.groupId == g && update.artifactIds.exists(_.name == a.name)
+    }
 
   private def globalFilter(update: Update.ForArtifactId, repoConfig: RepoConfig): FilterResult =
     selectSuitableNextVersion(update, repoConfig).flatMap(checkVersionOrdering)
@@ -84,7 +110,7 @@ object FilterAlg {
       repoConfig: RepoConfig
   ): FilterResult = {
     val newerVersions = update.newerVersions.toList
-    val maybeNext = repoConfig.updates.preRelease(update) match {
+    val maybeNext = repoConfig.updatesOrDefault.preRelease(update) match {
       case Left(_)  => update.currentVersion.selectNext(newerVersions)
       case Right(_) => update.currentVersion.selectNext(newerVersions, allowPreReleases = true)
     }

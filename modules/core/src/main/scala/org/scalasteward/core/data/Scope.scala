@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Scala Steward contributors
+ * Copyright 2018-2025 Scala Steward contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package org.scalasteward.core.data
 
-import cats.implicits._
+import cats.implicits.*
 import cats.{Applicative, Eval, Order, Traverse}
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.{Codec, Decoder, Encoder}
@@ -49,7 +49,6 @@ object Scope {
         f(fa.value, lb)
     }
 
-  @annotation.nowarn("cat=unused-params")
   implicit def scopeCodec[A: Decoder: Encoder]: Codec[Scope[A]] =
     deriveCodec
 

@@ -1,10 +1,10 @@
 package org.scalasteward.core.data
 
-import cats.implicits._
+import cats.implicits.*
 import cats.kernel.laws.discipline.OrderTests
 import munit.DisciplineSuite
-import org.scalacheck.Prop._
-import org.scalasteward.core.TestInstances._
+import org.scalacheck.Prop.*
+import org.scalasteward.core.TestInstances.*
 import org.scalasteward.core.data.Version.Component
 import scala.util.Random
 
@@ -267,8 +267,6 @@ class VersionTest extends DisciplineSuite {
         List("0.21.7+81-a0ff7dd-SNAPSHOT", "0.22.0+99-a0087dd-SNAPSHOT"),
         Some("0.22.0+99-a0087dd-SNAPSHOT")
       ),
-      ("0.1.1", List("0.2.1-485fdf3b"), None),
-      ("0.1.1-RC1", List("0.2.1-485fdf3b"), None),
       ("0.1.1-ALPHA", List("0.2.1-SNAPSHOT"), None),
       ("0.21.5", List("0.21.6+75-6ad94f6f-SNAPSHOT"), None),
       ("0.21.6", List("0.21.6+75-6ad94f6f-SNAPSHOT"), None),
@@ -282,28 +280,33 @@ class VersionTest extends DisciplineSuite {
       ("0.1.1", List("0.1.2"), Some("0.1.2")),
       ("0.1.1-RC1", List("0.1.2"), Some("0.1.2")),
       ("0.1.1-ALPHA", List("0.1.2"), Some("0.1.2")),
-      ("0.1.1", List("0.1.2-FEAT"), Some("0.1.2-FEAT")),
-      ("0.1.1", List("0.1.2-FEAT+3dfde9d7"), None)
+      ("0.1.1", List("0.1.2-FEAT"), Some("0.1.2-FEAT"))
     )
 
     val rnd = new Random()
     nextVersions.foreach { case (current, versions, result) =>
       val obtained = Version(current).selectNext(rnd.shuffle(versions).map(Version.apply), true)
-      assertEquals(obtained, result.map(Version.apply))
+      assertEquals(obtained, result.map(Version.apply), s"For current release $current")
     }
   }
 
   test("Component: round-trip") {
-    forAll { str: String => assertEquals(Component.render(Component.parse(str)), str) }
+    forAll((str: String) => assertEquals(Component.render(Component.parse(str)), str))
   }
 
   test("Component: round-trip using Version") {
-    forAll { v: Version => assertEquals(Component.render(Component.parse(v.value)), v.value) }
+    forAll((v: Version) => assertEquals(Component.render(Component.parse(v.value)), v.value))
   }
 
   test("Component: round-trip example") {
     val original = "1.0.0-rc.1+build.1"
     assertEquals(Component.render(Component.Empty :: Component.parse(original)), original)
+  }
+
+  test("Stable preview releases should not be identified as snapshots") {
+    val previewVersion =
+      Version("0.0.37-PREVIEW.try-out-verify-artifact-hashes.2024-04-25T1652.c7fa7c2b")
+    assertEquals(previewVersion.isSnapshot, false)
   }
 
   def checkPairwise(versions: List[String]): Unit = {
