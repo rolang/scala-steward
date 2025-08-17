@@ -236,7 +236,7 @@ lazy val core = myCrossProject("core")
         val outFile = outDir / s"StewardPlugin_$v.scala"
         if (!outFile.exists()) {
           val u =
-            s"https://raw.githubusercontent.com/rolang/-scala-steward-sbt-plugin/main/modules/sbt-plugin-$v/src/main/scala/org/scalasteward/sbt/plugin/StewardPlugin_$v.scala"
+            s"https://raw.githubusercontent.com/scala-steward-org/sbt-plugin/main/modules/sbt-plugin-$v/src/main/scala/org/scalasteward/sbt/plugin/StewardPlugin_$v.scala"
           val content = scala.util.Using(scala.io.Source.fromURL(u))(_.mkString).get
           IO.write(outFile, content)
         }
